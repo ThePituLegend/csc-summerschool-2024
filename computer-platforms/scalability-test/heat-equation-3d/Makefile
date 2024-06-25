@@ -6,7 +6,7 @@ COMMONDIR=.
 
 ifeq ($(COMP),gnu)
 CXX=CC
-CC=gcc
+CC=cc
 HIPCC=hipcc 
 HIPFLAGS=-O3 $(GPU_MEMORY)
 GPU_MEMORY=-DPINNED_MEMORY 

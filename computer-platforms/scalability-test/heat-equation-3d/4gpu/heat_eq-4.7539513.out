@@ -1,0 +1,11 @@
+Simulation parameters: height: 480 width: 480 length: 480 time steps: 3000
+Number of MPI tasks: 4 (4 x 1 x 1)
+Number of GPUs per node: 4
+Using manual packing of send/recv buffers
+Average temperature at start: 63.837017
+Iteration took 2.806768 seconds.
+  Memory copies 0.054474 s.
+  Communication 0.193548 s.
+  Compute       2.505814 s.
+Average temperature: 63.814151
+Reference value with default arguments: 63.829613
