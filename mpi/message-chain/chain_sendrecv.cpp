@@ -38,20 +38,18 @@ int main(int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
     t0 = MPI_Wtime();
 
-    // TODO: Send messages
-    MPI_Send(message.data(), size, MPI_INT, destination, rank + 1, MPI_COMM_WORLD);
-
+    // TODO: Send & Receive messages
     printf("Sender: %d. Sent elements: %d. Tag: %d. Receiver: %d\n",
            rank, size, rank + 1, destination);
 
-    // TODO: Receive messages
-    MPI_Recv(receiveBuffer.data(), size, MPI_INT, source, rank, MPI_COMM_WORLD, &status);
+    MPI_Sendrecv(message.data(), size, MPI_INT, destination, rank + 1, 
+                receiveBuffer.data(), size, MPI_INT, source, rank, MPI_COMM_WORLD, &status);
 
     int nrecv;
     MPI_Get_count(&status, MPI_INT, &nrecv);
 
-    printf("Receiver: %d. Received elements: %d. First element %d.\n",
-           rank, nrecv, receiveBuffer[0]);
+    printf("Receiver: %d. first element %d.\n",
+           rank, receiveBuffer[0]);
 
     // Finalize measuring the time and print it out
     t1 = MPI_Wtime();
