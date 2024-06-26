@@ -9,6 +9,7 @@
 *.sif
 build/
 core
+.vscode
 
 #ignore default binary name
 a.out
