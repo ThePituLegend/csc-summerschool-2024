@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
 
   // TODO start: initialize MPI
-
+    MPI_Init(&argc, &argv);
   // TODO end
 
     initialize(argc, argv, &current, &previous, &nsteps, &parallelization);
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     finalize(&current, &previous);
 
   // TODO start: finalize MPI
-
+    MPI_Finalize();
   // TODO end
 
     return 0;

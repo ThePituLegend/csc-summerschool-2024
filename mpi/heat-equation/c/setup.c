@@ -145,9 +145,10 @@ void parallel_setup(parallel_data *parallel, int nx, int ny)
 
     // TODO start: query number of MPI tasks, and rank and store them in
     // parallel struct (size and rank members)
-
-
+    MPI_Comm_size(MPI_COMM_WORLD, &parallel->size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &parallel->rank);
     // TODO end
+
     parallel_set_dimensions(parallel, nx, ny);
 
     // TODO start
@@ -155,8 +156,8 @@ void parallel_setup(parallel_data *parallel, int nx, int ny)
     // them in nup and ndown attributes, remember to cope with
     // boundary domains appropriatly
 
-    parallel->nup =
-    parallel->ndown =
+    parallel->nup =   (parallel->rank == 0)                  ? MPI_PROC_NULL : parallel->rank - 1;
+    parallel->ndown = (parallel->rank == parallel->size - 1) ? MPI_PROC_NULL : parallel->rank + 1;
 
     // TODO end
 }
