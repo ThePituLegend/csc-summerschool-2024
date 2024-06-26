@@ -29,11 +29,15 @@ int main(int argc, char *argv[])
     // Send msgsize elements from the array "message", and receive into
     // "receiveBuffer"
     if (rank == 0) {
-
+        MPI_Send(message, msgsize, MPI_INT, 1, 0, MPI_COMM_WORLD);
+        MPI_Recv(receiveBuffer, msgsize, MPI_INT, 1, 0, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_INT, &nrecv);
         printf("Rank %i received %i elements, first %i\n", rank, nrecv, receiveBuffer[0]);
     } else if (rank == 1) {
-
+        MPI_Recv(receiveBuffer, msgsize, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_INT, &nrecv);
         printf("Rank %i received %i elements, first %i\n", rank, nrecv, receiveBuffer[0]);
+        MPI_Send(message, msgsize, MPI_INT, 0, 0, MPI_COMM_WORLD);
     }
 
     // Free buffers
