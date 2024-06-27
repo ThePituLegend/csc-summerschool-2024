@@ -8,7 +8,7 @@ int main(int argc, char* argv[]) {
     int dims[2] = {0};      /* Dimensions of the grid */
     int coords[2] = {0};    /* Coordinates in the grid */
     int neighbors[4] = {0}; /* Neighbors in 2D grid */
-    int period[2] = {1, 1};
+    int period[2] = {0, 0};
     MPI_Comm comm2d;
 
     MPI_Init(&argc, &argv);
@@ -35,13 +35,14 @@ int main(int argc, char* argv[]) {
     }
 
     /* Create the 2D Cartesian communicator */
-    /* TODO */
+    MPI_Cart_create(MPI_COMM_WORLD, 2, dims, period, 1, &comm2d);
 
     /* Find out and store the neighboring ranks */
-    /* TODO */
+    MPI_Cart_shift(comm2d, 0, 1, &neighbors[0], &neighbors[1]);
+    MPI_Cart_shift(comm2d, 1, 1, &neighbors[2], &neighbors[3]);
 
     /* Find out and store also the Cartesian coordinates of a rank */
-    /* TODO */
+    MPI_Cart_coords(comm2d, rank, 2, coords);
 
     for (irank = 0; irank < ntasks; irank++) {
         if (rank == irank) {
