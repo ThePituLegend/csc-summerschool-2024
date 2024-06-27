@@ -37,6 +37,13 @@ int main(int argc, char *argv[])
      *       (and maybe prepare some parameters for the call)
      */
 
+    color = (rank / 2 == 0);
+    printf("Rank %d, color %d\n", rank, color);
+
+    MPI_Comm_split(MPI_COMM_WORLD, color, rank, &sub_comm);
+    MPI_Reduce(sendbuf.data(), recvbuf.data(), sendbuf.size(),
+               MPI_INT, MPI_SUM, 0, sub_comm);
+
     /* Print data that was received */
     print_buffers(recvbuf);
 
