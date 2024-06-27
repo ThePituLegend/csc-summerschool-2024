@@ -45,8 +45,10 @@ int main(int argc, char **argv)
 
     // Time evolve
     for (int iter = 1; iter <= nsteps; iter++) {
-        exchange(previous, parallelization);
-        evolve(current, previous, a, dt);
+        exchange_begin(previous, parallelization);
+        evolve_inner(current, previous, a, dt);
+        exchange_end(parallelization);
+        evolve_outer(current, previous, a, dt);
         if (iter % image_interval == 0) {
             write_field(current, iter, parallelization);
         }
