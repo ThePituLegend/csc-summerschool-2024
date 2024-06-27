@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
   printf("Hello from rank %d of %d\n", rank, size);
 
   if (rank == 0) {
-    usleep(100);  // "computing"
+    usleep(200);  // "computing"
     double data = 42.0;
 
     // Send with rank 0
