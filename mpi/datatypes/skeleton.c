@@ -7,7 +7,7 @@ int main(int argc, char **argv)
     int array[8][8];
 
     // Declare a variable storing the MPI datatype
-    // TODO
+    MPI_Datatype my_datatype;
 
     MPI_Init(&argc, &argv);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -39,13 +39,19 @@ int main(int argc, char **argv)
     }
 
     // Create datatype
-    // TODO
+    MPI_Type_vector(8, 1, 8, MPI_INT, &my_datatype);
+    MPI_Type_commit(&my_datatype);
 
     // Send data from rank 0 to rank 1
-    // TODO
+    if (rank == 0) {
+        MPI_Send(&array[0][1], 1, my_datatype, 1, 1, MPI_COMM_WORLD);
+    } else if (rank == 1) {
+        MPI_Recv(&array[0][1], 1, my_datatype, 0, 1, MPI_COMM_WORLD,
+                 MPI_STATUS_IGNORE);
+    }
 
     // Free datatype
-    // TODO
+    MPI_Type_free(&my_datatype);
 
     // Print received data
     if (rank == 1) {
