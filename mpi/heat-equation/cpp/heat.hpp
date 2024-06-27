@@ -9,14 +9,19 @@ struct ParallelData {
     int rank;
     int nup, ndown;      // Ranks of neighbouring MPI tasks
     MPI_Request nb_reqs[4]; // Non-blocking requests (1 send + 1 recieve per ghost layer, 2 GL)
+    MPI_Comm comm;
 
     ParallelData() {      // Constructor
 
       MPI_Comm_size(MPI_COMM_WORLD, &size);
-      MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+    
+      int periods = 0;
+      MPI_Cart_create(MPI_COMM_WORLD, 1, &size, &periods, 0, &comm);
 
-      nup = (rank == 0) ? MPI_PROC_NULL : rank - 1;
-      ndown = (rank == (size-1)) ? MPI_PROC_NULL: rank + 1;
+      MPI_Comm_rank(comm, &rank);
+
+      // Get the ranks of the neighbour tasks
+      MPI_Cart_shift(comm, 0, 1, &nup, &ndown);
     };
 
 };

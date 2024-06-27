@@ -18,17 +18,17 @@ void exchange_begin(Field& field, ParallelData& parallel)
     double* sbuf_up = field.temperature.data(1, 0);
     double* rbuf_down  = field.temperature.data(field.nx + 1, 0);
     MPI_Isend(sbuf_up, field.ny + 2, MPI_DOUBLE,
-              parallel.nup, 11, MPI_COMM_WORLD, &parallel.nb_reqs[0]);
+              parallel.nup, 11, parallel.comm, &parallel.nb_reqs[0]);
     MPI_Irecv(rbuf_down, field.ny + 2, MPI_DOUBLE,
-              parallel.ndown, 11, MPI_COMM_WORLD, &parallel.nb_reqs[1]);
+              parallel.ndown, 11, parallel.comm, &parallel.nb_reqs[1]);
 
     // Send to down, receive from up
     double* sbuf_down = field.temperature.data(field.nx, 0);
     double* rbuf_up = field.temperature.data();
     MPI_Isend(sbuf_down, field.ny + 2, MPI_DOUBLE,
-              parallel.ndown, 12, MPI_COMM_WORLD, &parallel.nb_reqs[2]);
+              parallel.ndown, 12, parallel.comm, &parallel.nb_reqs[2]);
     MPI_Irecv(rbuf_up, field.ny + 2, MPI_DOUBLE,
-              parallel.nup, 12, MPI_COMM_WORLD, &parallel.nb_reqs[3]);
+              parallel.nup, 12, parallel.comm, &parallel.nb_reqs[3]);
 }
 
 void exchange_end(ParallelData& parallel)
