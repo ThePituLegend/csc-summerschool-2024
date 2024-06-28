@@ -54,6 +54,23 @@ void single_writer(int my_id, int *localvector, int localsize)
     /* TODO: Implement a function that will write the data to file so that
        a single process does the file io. Use rank WRITER_ID as the io rank */
 
+    fullvector = (int *) malloc(DATASIZE * sizeof(int));
+
+    MPI_Gather(localvector, localsize, MPI_INT, fullvector, localsize, MPI_INT,
+               WRITER_ID, MPI_COMM_WORLD);
+
+    if (my_id == WRITER_ID) {
+        fp = fopen("singlewriter.dat", "w");
+        if (fp == NULL) {
+            fprintf(stderr, "Error opening file: %s\n", strerror(errno));
+            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        }
+
+        fwrite(fullvector, sizeof(int), DATASIZE, fp);
+
+        fclose(fp);
+    }
+
     free(fullvector);
 }
 

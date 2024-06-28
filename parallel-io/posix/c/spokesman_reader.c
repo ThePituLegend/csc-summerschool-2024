@@ -52,6 +52,29 @@ void single_reader(int my_id, int *localvector, int localsize)
 
     /* TODO: Implement a function that will read the data from a file so that
        a single process does the file io. Use rank WRITER_ID as the io rank */
+    
+    if (my_id == WRITER_ID) {
+        fp = fopen(fname, "r");
+        if (fp == NULL) {
+            fprintf(stderr, "Error opening file %s: %s\n", fname,
+                    strerror(errno));
+            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        }
+
+        fullvector = (int *) malloc(DATASIZE * sizeof(int));
+
+        nread = fread(fullvector, sizeof(int), DATASIZE, fp);
+        if (nread != DATASIZE) {
+            fprintf(stderr, "Error reading file %s: %s\n", fname,
+                    strerror(errno));
+            MPI_Abort(MPI_COMM_WORLD, EXIT_FAILURE);
+        }
+
+        fclose(fp);
+    }
+
+    MPI_Scatter(fullvector, localsize, MPI_INT, localvector, localsize, 
+                MPI_INT, WRITER_ID, MPI_COMM_WORLD);
 
     free(fullvector);
 }
