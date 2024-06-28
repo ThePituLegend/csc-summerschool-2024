@@ -33,48 +33,16 @@ int main(int argc, char *argv[])
     }
   }
 
-  // Define datatype for the struct
-  MPI_Datatype particle_dt;
-  int blocklens[3] = {3, 1, 2};
-  MPI_Datatype types[3] = {MPI_FLOAT, MPI_INT, MPI_CHAR};
-
-  // Get displacements
-  MPI_Aint displ[3];
-  MPI_Get_address(&particles[0].coords, &displ[0]);
-  MPI_Get_address(&particles[0].charge, &displ[1]);
-  MPI_Get_address(&particles[0].label, &displ[2]);
-
-  // Make relative displacements
-  displ[2] -= displ[0];
-  displ[1] -= displ[0];
-  displ[0] = 0;
-
-  // Create datatype
-  MPI_Type_create_struct(3, blocklens, displ, types, &particle_dt);
-  MPI_Type_commit(&particle_dt);
-
-  // Check extent
-  MPI_Aint lb, extent;
-  MPI_Type_get_extent(particle_dt, &lb, &extent);
-
-  if (extent != sizeof(particle[0])) {
-    MPI_Datatype tmp_dt = particle_dt;
-    MPI_Type_create_resized(tmp_dt, 0, sizeof(particles[0]), &particle_dt);
-    MPI_Type_commit(&particle_dt);
-    MPI_Type_free(&tmp_dt);
-  }
-
-
   // Communicate using the created particletype
   // Multiple sends are done for better timing
   t1 = MPI_Wtime();
   if (rank == 0) {
     for (i=0; i < reps; i++) {
-      MPI_Send(particles, n, particle_dt, 1, i, MPI_COMM_WORLD);
+      MPI_Send(particles, n*sizeof(particles[0]), MPI_BYTE, 1, i, MPI_COMM_WORLD);
     }
   } else if (rank == 1) {
     for (i=0; i < reps; i++) {
-      MPI_Recv(particles, n, particle_dt, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(particles, n*sizeof(particles[0]), MPI_BYTE, 0, i, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
   }
   t2 = MPI_Wtime();
@@ -83,9 +51,6 @@ int main(int argc, char *argv[])
   printf("Check: %i: %s %f %f %f \n", rank, particles[n-1].label,
           particles[n-1].coords[0], particles[n-1].coords[1],
           particles[n-1].coords[2]);
-
-  // Free datatype
-  MPI_Type_free(&particle_dt);
 
   MPI_Finalize();
   return 0;
