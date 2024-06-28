@@ -5,6 +5,7 @@
 #include <string.h>
 #include <assert.h>
 #include <mpi.h>
+#include "hdf5.h"
 
 #include "heat.h"
 #include "../common/pngwriter.h"
@@ -140,38 +141,81 @@ void read_field(field *temperature1, field *temperature2, char *filename,
  * iteration number and temperature field. */
 void write_restart(field *temperature, parallel_data *parallel, int iter)
 {
+    hid_t plist_id, dset_id, filespace, memspace, attrspace, file_id, attr_id;
+    hsize_t size_full[2]        = {temperature->nx_full, temperature->ny_full};
+    hsize_t start_full[2]       = {parallel->rank*temperature->nx, 0};
+    hsize_t size_block[2]       = {temperature->nx, temperature->ny};
+    hsize_t count_block[2]      = {1, 1};
+    hsize_t stride_block[2]     = {1, 1};
+    hsize_t size_block_ghost[2] = {temperature->nx+2, temperature->ny+2};
+
     // TODO: create a file called CHECKPOINT (defined in heat.h)
+    plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    file_id = H5Fcreate(CHECKPOINT, H5F_ACC_TRUNC, H5P_DEFAULT, plist_id);
+    H5Pclose(plist_id);
 
     // TODO: define a dataspace with the dimensions of the full
     //   temperature field and create the dataset.
+    filespace = H5Screate_simple(2, size_full, NULL);
+    dset_id = H5Dcreate(file_id, "Temperature", H5T_NATIVE_DOUBLE, filespace, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
 
     // TODO: use hyperslabs to define the part of the file that
     //   each rank writes.
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start_full, NULL, count_block, size_block);
 
     // TODO: define a dataspace with the dimensions of a local
     //   domain for each rank and user hyperslabs to select
     //   the part containing the data (not including the ghost
     //   cells).
+    memspace = H5Screate_simple(2, size_block_ghost, NULL);
+    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, stride_block, NULL, count_block, size_block);
 
     // TODO: write data using a collective write operation.
+    plist_id = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+    H5Dwrite(dset_id, H5T_NATIVE_DOUBLE, memspace, filespace, plist_id, &(temperature->data[0][0]));
+
 
     // TODO: write the current iteration number as an
     //   attribute to the dataset containing the temperature
     //   field.
+    attrspace = H5Screate(H5S_SCALAR);
+    attr_id = H5Acreate(dset_id, "Iteration", H5T_NATIVE_INT, attrspace, H5P_DEFAULT, H5P_DEFAULT);
+    H5Awrite(attr_id, H5T_NATIVE_INT, &iter);
 
     // TODO: close all handles.
+    H5Sclose(attrspace);
+    H5Aclose(attr_id);
+    H5Dclose(dset_id);
+    H5Pclose(plist_id);
+    H5Sclose(filespace);
+    H5Sclose(memspace);
+    H5Fclose(file_id);
 }
 
 /* Read an HDF restart checkpoint file that contains the current
  * iteration number and temperature field. */
 void read_restart(field *temperature, parallel_data *parallel, int *iter)
 {
+    hid_t plist_id, dset_id, filespace, memspace, file_id, attr_id;
+    hsize_t dim[2], start_full[2], size_block[2], size_block_ghost[2];
+    hsize_t ones[2]={1, 1};
+
     // TODO: open the file called CHECKPOINT (defined in heat.h)
+    plist_id = H5Pcreate(H5P_FILE_ACCESS);
+    H5Pset_fapl_mpio(plist_id, MPI_COMM_WORLD, MPI_INFO_NULL);
+    file_id = H5Fopen(CHECKPOINT, H5F_ACC_RDONLY, plist_id);
+    H5Pclose(plist_id);
 
     // TODO: open the dataset containing the temperature field.
+    dset_id = H5Dopen(file_id, "Temperature", H5P_DEFAULT);
 
     // TODO: read the dimensions of the dataspace and
     //   set correct dimensions to MPI metadata
+    filespace = H5Dget_space(dset_id);
+    H5Sget_simple_extent_dims(filespace, dim, NULL);
+
     parallel_setup(parallel, dim[0], dim[1]);
 
     //   set local dimensions and allocate memory for the data
@@ -180,15 +224,37 @@ void read_restart(field *temperature, parallel_data *parallel, int *iter)
 
     // TODO: use hyperslabs to define the part of the file that
     //   each rank reads.
+    start_full[0] = parallel->rank*temperature->nx;
+    start_full[1] = 0;
+    size_block[0] = temperature->nx;
+    size_block[1] = temperature->ny;
+    H5Sselect_hyperslab(filespace, H5S_SELECT_SET, start_full, NULL, ones, size_block);
 
     // TODO: in each rank create a dataspace to read the data into
     //   and use hyperslabs to define the part containing the
     //   data.
+    size_block_ghost[0] = temperature->nx+2;
+    size_block_ghost[1] = temperature->ny+2;
+
+    memspace = H5Screate_simple(2, size_block_ghost, NULL);
+    H5Sselect_hyperslab(memspace, H5S_SELECT_SET, ones, NULL, ones, size_block);
 
     // TODO: read the data using a collective read.
+    plist_id = H5Pcreate(H5P_DATASET_XFER);
+    H5Pset_dxpl_mpio(plist_id, H5FD_MPIO_COLLECTIVE);
+    H5Dread(dset_id, H5T_NATIVE_DOUBLE, memspace, filespace, plist_id, &(temperature->data[0][0]));
 
     // TODO: read the attribute containing the number of
     //   current iteration.
+    attr_id = H5Aopen(dset_id, "Iteration", H5P_DEFAULT);
+    H5Aread(attr_id, H5T_NATIVE_INT, iter);
+    (*iter)++;
 
     // TODO: close all handles.
+    H5Aclose(attr_id);
+    H5Dclose(dset_id);
+    H5Pclose(plist_id);
+    H5Sclose(filespace);
+    H5Sclose(memspace);
+    H5Fclose(file_id);
 }
