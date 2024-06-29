@@ -5,12 +5,16 @@
 #include <iomanip>
 #include <mpi.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 #include "heat.hpp"
 
 int main(int argc, char **argv)
 {
-
-    MPI_Init(&argc, &argv);
+    int provided, required=MPI_THREAD_FUNNELED;
+    MPI_Init_thread(&argc, &argv, required, &provided);
 
     const int image_interval = 100;    // Image output interval
 
@@ -20,6 +24,14 @@ int main(int argc, char **argv)
     Field current, previous;    // Current and previous temperature fields
     initialize(argc, argv, current, previous, nsteps, parallelization);
 
+    int num_threads = 1;
+    #pragma omp parallel
+    {
+    #ifdef _OPENMP
+        #pragma omp master
+        num_threads = omp_get_num_threads();
+    #endif
+    }
     // Output the initial field
     write_field(current, 0, parallelization);
 
@@ -29,6 +41,7 @@ int main(int argc, char **argv)
                   << "rows: " << current.nx_full << " columns: " << current.ny_full
                   << " time steps: " << nsteps << std::endl;
         std::cout << "Number of MPI tasks: " << parallelization.size << std::endl;
+        std::cout << "Number of OpenMP threads: " << num_threads << std::endl;
         std::cout << std::fixed << std::setprecision(6);
         std::cout << "Average temperature at start: " << average_temp << std::endl;
     }
