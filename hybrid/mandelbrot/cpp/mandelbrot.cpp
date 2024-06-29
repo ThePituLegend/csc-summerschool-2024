@@ -79,6 +79,7 @@ void mandelbrot_block(int *iter_counts, int w, int h, complex<double> cmin,
         // Subdivide recursively
         for (int i = 0; i < SUBDIV; i++) {
             for (int j = 0; j < SUBDIV; j++) {
+                #pragma omp task
                 mandelbrot_block(iter_counts, w, h, cmin, cmax,
                                  x0 + i * block_size, y0 + j * block_size,
                                  d / SUBDIV, depth + 1);
@@ -112,10 +113,10 @@ int main(int argc, char **argv)
 
 // TODO create parallel region. How many threads should be calling
 // mandelbrot_block in this uppermost level?
-
+    #pragma omp parallel
     {
-        mandelbrot_block(iter_counts, w, h, cmin, cmax,
-                         0, 0, w, 1);
+        #pragma omp single
+        mandelbrot_block(iter_counts, w, h, cmin, cmax, 0, 0, w, 1);
     }
     double t2 = omp_get_wtime();
 
