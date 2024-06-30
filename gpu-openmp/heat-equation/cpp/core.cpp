@@ -17,10 +17,15 @@ void evolve(Field& curr, Field& prev, const double a, const double dt)
   int nx = curr.nx;
   int ny = curr.ny;
 
+  int curr_size = curr.temperature.size();
+  int prev_size = prev.temperature.size();
+
   // Determine the temperature field at next time step
   // As we have fixed boundary conditions, the outermost gridpoints
   // are not updated.
+  #pragma omp target teams distribute map(to: prevdata[0:prev_size]) map(from: currdata[0:curr_size])
   for (int i = 1; i < nx + 1; i++) {
+    #pragma omp parallel for
     for (int j = 1; j < ny + 1; j++) {
       int ind = i * (ny + 2) + j;
       int ip = (i + 1) * (ny + 2) + j;
@@ -28,8 +33,8 @@ void evolve(Field& curr, Field& prev, const double a, const double dt)
       int jp = i * (ny + 2) + j + 1;
       int jm = i * (ny + 2) + j - 1;
       currdata[ind] = prevdata[ind] + a*dt*
-	    ((prevdata[ip] - 2.0*prevdata[ind] + prevdata[im]) * inv_dx2 +
-	     (prevdata[jp] - 2.0*prevdata[ind] + prevdata[jm]) * inv_dy2);
+      ((prevdata[ip] - 2.0*prevdata[ind] + prevdata[im]) * inv_dx2 +
+      (prevdata[jp] - 2.0*prevdata[ind] + prevdata[jm]) * inv_dy2);
     }
   }
 
