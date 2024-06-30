@@ -1,0 +1,95 @@
+Legend:
+
+  A - recognized idiom
+  D - deleted loop
+  I - callee inlined here
+  L - interleaved loop
+  M - multithreaded
+  P - peeled loop
+  S - distributed loop
+  U - completely unrolled loop
+  u - partially unrolled loop
+  V - vectorized loop
+  X - loop interchanged with enclosing loop
+  Z - versioned loop for LICM
+  + - additional messages below
+
+----------
+
+ 1.           #include <stdio.h>
+ 2.           #include <omp.h>
+ 3.           
+ 4.           #define nx 2000
+ 5.           #define ny 2000
+ 6.           
+ 7.           int main()
+ 8.           {
+ 9.           
+10.             const int niter = 500;
+11.             const double factor = 0.25;
+12.           
+13.             double u[nx * ny], unew[nx * ny];
+14.           
+15.             // Initialize u
+16.             for (int i = 0; i < nx; i++) {
+17.               for (int j = 0; j < ny; j++) {
+18.                 int ind = i * ny + j;
+19.                 u[ind] = ((i - nx / 2) * (i - nx / 2)) / nx +
+20.                          ((j - ny / 2) * (j - ny / 2)) / ny;
+21.               }
+22.             }
+23.           
+24.             double t0 = omp_get_wtime();
+25.             // Iterate
+26.             for (int n = 0; n < niter; n++) {
+27.           
+28.               // TODO start: offload the two stencil updates
+29.           
+30.   I           #pragma omp target teams
+31.               {
+32.                 // Stencil update 1
+33.   I 0--<>       #pragma omp distribute
+34.                 for (int i = 1; i < nx - 1; i++) {
+35.   I 0--<>         #pragma omp parallel for
+36. +   M---<         for (int j = 1; j < ny - 1; j++) {
+37.     M             int ind = i * ny + j;
+38.     M             int ip = (i + 1) * ny + j;
+39.     M             int im = (i - 1) * ny + j;
+40.     M             int jp = i * ny + j + 1;
+41.     M             int jm = i * ny + j - 1;
+42.     M             unew[ind] = factor * (u[ip] - 2.0 * u[ind] + u[im] +
+43.     M                                   u[jp] - 2.0 * u[ind] + u[jm]);
+44.     M--->         }
+45.                 }
+46.           
+47.                 // "Swap" the arrays, stencil update 2
+48.   I 0--<>       #pragma omp distribute
+49.                 for (int i = 1; i < nx - 1; i++) {
+50.   I 0--<>         #pragma omp parallel for
+51. +   M---<         for (int j = 1; j < ny - 1; j++) {
+52.     M             int ind = i * ny + j;
+53.     M             int ip = (i + 1) * ny + j;
+54.     M             int im = (i - 1) * ny + j;
+55.     M             int jp = i * ny + j + 1;
+56.     M             int jm = i * ny + j - 1;
+57.     M             u[ind] = factor * (unew[ip] - 2.0 * unew[ind] + unew[im] +
+58.     M                                   unew[jp] - 2.0 * unew[ind] + unew[jm]);
+59.     M--->         }
+60.                 }
+61.               }
+62.           
+63.               // TODO end
+64.           
+65.             }
+66.           
+67.             double t1 = omp_get_wtime();
+68.             // Check final result
+69.             printf("u[0,0] = %f\n", u[0]);
+70.             printf("Time spent: %6.3f s\n", t1 - t0);
+71.           }
+
+----------
+
+36. Outlined parallel region
+
+51. Outlined parallel region

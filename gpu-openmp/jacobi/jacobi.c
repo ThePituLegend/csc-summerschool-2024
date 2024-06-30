@@ -27,29 +27,36 @@ int main()
 
     // TODO start: offload the two stencil updates
 
-    // Stencil update 1
-    for (int i = 1; i < nx - 1; i++) {
-      for (int j = 1; j < ny - 1; j++) {
-      int ind = i * ny + j;
-      int ip = (i + 1) * ny + j;
-      int im = (i - 1) * ny + j;
-      int jp = i * ny + j + 1;
-      int jm = i * ny + j - 1;
-      unew[ind] = factor * (u[ip] - 2.0 * u[ind] + u[im] +
-                            u[jp] - 2.0 * u[ind] + u[jm]);
+    #pragma omp target teams
+    {
+      // Stencil update 1
+      #pragma omp distribute
+      for (int i = 1; i < nx - 1; i++) {
+        #pragma omp parallel for
+        for (int j = 1; j < ny - 1; j++) {
+        int ind = i * ny + j;
+        int ip = (i + 1) * ny + j;
+        int im = (i - 1) * ny + j;
+        int jp = i * ny + j + 1;
+        int jm = i * ny + j - 1;
+        unew[ind] = factor * (u[ip] - 2.0 * u[ind] + u[im] +
+                              u[jp] - 2.0 * u[ind] + u[jm]);
+        }
       }
-    }
 
-    // "Swap" the arrays, stencil update 2
-    for (int i = 1; i < nx - 1; i++) {
-      for (int j = 1; j < ny - 1; j++) {
-      int ind = i * ny + j;
-      int ip = (i + 1) * ny + j;
-      int im = (i - 1) * ny + j;
-      int jp = i * ny + j + 1;
-      int jm = i * ny + j - 1;
-      u[ind] = factor * (unew[ip] - 2.0 * unew[ind] + unew[im] +
-                            unew[jp] - 2.0 * unew[ind] + unew[jm]);
+      // "Swap" the arrays, stencil update 2
+      #pragma omp distribute
+      for (int i = 1; i < nx - 1; i++) {
+        #pragma omp parallel for
+        for (int j = 1; j < ny - 1; j++) {
+        int ind = i * ny + j;
+        int ip = (i + 1) * ny + j;
+        int im = (i - 1) * ny + j;
+        int jp = i * ny + j + 1;
+        int jm = i * ny + j - 1;
+        u[ind] = factor * (unew[ip] - 2.0 * unew[ind] + unew[im] +
+                              unew[jp] - 2.0 * unew[ind] + unew[jm]);
+        }
       }
     }
 
