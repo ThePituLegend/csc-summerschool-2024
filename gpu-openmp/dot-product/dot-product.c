@@ -15,6 +15,7 @@ int main(void)
     // TODO start: offload and parallelize the computation
 
     double res = 0.0;
+    #pragma omp target teams distribute parallel for map(to: vecA, vecB) reduction(+:res)
     for (int i = 0; i < NX; i++) {
         res += vecA[i] * vecB[i];
     }
