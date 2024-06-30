@@ -1,0 +1,67 @@
+Legend:
+
+  A - recognized idiom
+  D - deleted loop
+  I - callee inlined here
+  L - interleaved loop
+  M - multithreaded
+  P - peeled loop
+  S - distributed loop
+  U - completely unrolled loop
+  u - partially unrolled loop
+  V - vectorized loop
+  X - loop interchanged with enclosing loop
+  Z - versioned loop for LICM
+  + - additional messages below
+
+----------
+
+ 1.           #include <stdio.h>
+ 2.           
+ 3.           #define NX 102400
+ 4.           
+ 5.           int main(void)
+ 6.           {
+ 7.               double vecA[NX], vecB[NX], vecC[NX];
+ 8.           
+ 9.               /* Initialization of the vectors */
+10.               for (int i = 0; i < NX; i++) {
+11.                   vecA[i] = 1.0 / ((double) (NX - i));
+12.                   vecB[i] = vecA[i] * vecA[i];
+13.               }
+14.           
+15.               // TODO start: create a data region and offload the two computations
+16.               // so that data is kept in the device between the computations
+17.           
+18.               double res = 0.0;
+19.               #pragma omp target data map(to: vecA, vecB) map(from: vecC)
+20.               {
+21.                   #pragma omp target teams distribute parallel for
+22. +   M---<         for (int i = 0; i < NX; i++) {
+23.     M                 vecC[i] = vecA[i] + vecB[i];
+24.     M--->         }
+25.           
+26.                   #pragma omp target teams distribute parallel for reduction(+:res)
+27. +   M---<         for (int i = 0; i < NX; i++) {
+28.     M                 res += vecC[i] * vecB[i];
+29.     M--->         }
+30.               }
+31.           
+32.               // TODO end
+33.           
+34.               double sum = 0.0;
+35.               /* Compute the check value */
+36.               for (int i = 0; i < NX; i++) {
+37.                   sum += vecC[i];
+38.               }
+39.               printf("Reduction sum: %18.16f\n", sum);
+40.               printf("Dot product: %18.16f\n", res);
+41.           
+42.               return 0;
+43.           }
+
+----------
+
+22. Outlined parallel region
+
+27. Outlined parallel region
