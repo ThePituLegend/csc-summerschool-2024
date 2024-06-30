@@ -38,16 +38,21 @@ int main(int argc, char **argv)
     //Get the start time stamp 
     auto start_clock = omp_get_wtime();
 
+    enter_data(current, previous);
+
     // Time evolve
     for (int iter = 1; iter <= nsteps; iter++) {
         evolve(current, previous, a, dt);
         if (iter % image_interval == 0) {
             write_field(current, iter);
         }
+        update_host(current);
         // Swap current field so that it will be used
         // as previous for next iteration step
         std::swap(current, previous);
     }
+
+    exit_data(current, previous);
 
     auto stop_clock = omp_get_wtime();
 

@@ -27,6 +27,10 @@ void initialize(int argc, char *argv[], Field& current,
 
 void evolve(Field& curr, Field& prev, const double a, const double dt);
 
+void enter_data(Field& curr, Field& prev);
+void exit_data(Field& curr, Field& prev);
+void update_host(Field& curr);
+
 void write_field(const Field& field, const int iter);
 
 void read_field(Field& field, std::string filename);
