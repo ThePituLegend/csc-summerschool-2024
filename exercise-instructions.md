@@ -180,8 +180,22 @@ module load rocm/5.4.6
 
 To compile your program, use:
 ```bash
-CC -xhip <source.cpp>
+CC -xhip  <source.cpp>
 ```
+HIP codes can be compiled as well using the `hipcc` AMD compiler:
+```
+hipcc --offload-arch=gfx90a  `CC --cray-print-opts=cflags` <source>.cpp `CC --cray-print-opts=libs` 
+```
+The flag `--offload-arch=gfx90a` indicates that we are targeting MI200 GPUs. If the code uses some libraries we need extract from the `CC` wrapers. This is doen via the flags `CC --cray-print-opts=cflags` and  `CC --cray-print-opts=libs`.
+
+A more elegant solution would be to use:
+```
+export HIPCC_COMPILE_FLAGS_APPEND="--offload-arch=gfx90a $(CC --cray-print-opts=cflags)"
+export HIPCC_LINK_FLAGS_APPEND=$(CC --cray-print-opts=libs)
+
+hipcc <source.cpp>
+```
+This is helpful when using make.
 #### HIPFORT
 The following modules are required:
 ```bash
@@ -351,7 +365,7 @@ See [the MPI debugging exercise](mpi/debugging),
 [LUMI documentation](https://docs.lumi-supercomputer.eu/development/)
 for possible debugging options.
 
-## Performance analysis with TAU and Omniperf
+## Performance analysis with TAU and Omniperf  (**OUTDATED, check the [application-performance](/application-performance) folder!**)
 ```
 # Create installation directory
 mkdir -p .../appl/tau
