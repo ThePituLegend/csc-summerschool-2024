@@ -110,18 +110,29 @@ void noRecurringAlloc(int nSteps, int size)
     int *d_A;
     int *d_B;
     int *d_C;
+
   // Start timer, allocate and do things
   clock_t tStart = clock();
   
-  #error Allocate pinned device memory
+  // Allocate pinned device memory
+  HIP_ERR(hipMalloc((void**) &d_A, sizeof(int) * size));
+  HIP_ERR(hipMalloc((void**) &d_B, sizeof(int) * size));
+  HIP_ERR(hipMalloc((void**) &d_C, sizeof(int) * size));
+
   for(unsigned int i = 0; i < nSteps; i++)
   {    
     // Launch GPU kernel
     hipKernel<coalesced><<<gridsize, blocksize, 0, 0>>>(d_A, size, d_B, d_C);
   }
-  #error Synchronization
+  // Synchronization
+  HIP_ERR(hipStreamSynchronize(0));
+
   // Check results and print timings
-  #error Free allocation
+  // Free allocation
+  HIP_ERR(hipFree(d_A));
+  HIP_ERR(hipFree(d_B));
+  HIP_ERR(hipFree(d_C));
+
   checkTiming("noRecurringAlloc", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 }
 
@@ -140,12 +151,23 @@ void recurringAllocNoMemPools(int nSteps, int size)
     int *d_A;
     int *d_B;
     int *d_C;
-    #error Allocate pinned device memory
+
+    // Allocate pinned device memory
+    HIP_ERR(hipMalloc((void**)&d_A, sizeof(int) * size));
+    HIP_ERR(hipMalloc((void**)&d_B, sizeof(int) * size));
+    HIP_ERR(hipMalloc((void**)&d_C, sizeof(int) * size));
+
     // Launch GPU kernel
     hipKernel<coalesced><<<gridsize, blocksize, 0, 0>>>(d_A, size, d_B, d_C);
-    #error Free allocation
+    
+    // Free allocation
+    HIP_ERR(hipFree(d_A));
+    HIP_ERR(hipFree(d_B));
+    HIP_ERR(hipFree(d_C));
   }
-  #error Synchronization
+  // Synchronization
+  HIP_ERR(hipStreamSynchronize(0));
+
   // Check results and print timings
   checkTiming("recurringAllocNoMemPools", (double)(clock() - tStart) / CLOCKS_PER_SEC);
 }
@@ -168,12 +190,22 @@ void recurringAllocMallocAsync(int nSteps, int size)
     int *d_A;
     int *d_B;
     int *d_C;
-    #error Allocate pinned asynchronous device memory 
+
+    // Allocate pinned asynchronous device memory 
+    hipMallocAsync((void**) &d_A, sizeof(int) * size, stream);
+    hipMallocAsync((void**) &d_B, sizeof(int) * size, stream);
+    hipMallocAsync((void**) &d_C, sizeof(int) * size, stream);
+
     // Launch GPU kernel
     hipKernel<coalesced><<<gridsize, blocksize, 0, stream>>>(d_A, size, d_B, d_C);
-    #error free asynchronous device memory 
+
+    // free asynchronous device memory 
+    hipFreeAsync(d_A, stream);
+    hipFreeAsync(d_B, stream);
+    hipFreeAsync(d_C, stream);
   }
-  #error Synchronization
+  // Synchronization
+  HIP_ERR(hipStreamSynchronize(stream));
   // Check results and print timings
   // Destroy the stream
   HIP_ERR(hipStreamDestroy(stream));
