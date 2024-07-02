@@ -27,27 +27,35 @@ int main(){
   hipMalloc((void**)&d_a, bytes);   // device pinned
 
   // Create events
-  #error create the required timing events here
+  hipEvent_t start_kernel_event;
+  hipEventCreate(&start_kernel_event);
+  hipEvent_t start_d2h_event;
+  hipEventCreate(&start_d2h_event);
+  hipEvent_t stop_event;
+  hipEventCreate(&stop_event);
 
   // Create stream
   hipStream_t stream;
   hipStreamCreate(&stream);
 
   // Start timed GPU kernel and device-to-host copy
-  #error record the events somewhere across the below lines of code
-  #error such that you can get the timing for the kernel, the
-  #error memory copy, and the total combined time of these
   clock_t start_kernel_clock = clock();
+  hipEventRecord(start_kernel_event, stream);
   kernel<<<gridsize, blocksize, 0, stream>>>(d_a, n_total);
 
   clock_t start_d2h_clock = clock();
+  hipEventRecord(start_d2h_event, stream);
   hipMemcpyAsync(a, d_a, bytes, hipMemcpyDeviceToHost, stream);
 
   clock_t stop_clock = clock();
+  hipEventRecord(stop_event, stream);
   hipStreamSynchronize(stream);
 
   // Exctract elapsed timings from event recordings
-  #error get the elapsed time from the timing events
+  float time_kernel, time_d2h, time_total;
+  hipEventElapsedTime(&time_kernel, start_kernel_event, start_d2h_event);
+  hipEventElapsedTime(&time_d2h, start_d2h_event, stop_event);
+  hipEventElapsedTime(&time_total, start_kernel_event, stop_event);
 
   // Check that the results are right
   int error = 0;
@@ -64,7 +72,9 @@ int main(){
 
   // Print event timings
   printf("Event timings:\n");
-  #error print event timings here
+  printf("  %.3f ms - kernel\n", time_kernel);
+  printf("  %.3f ms - device to host copy\n", time_d2h);
+  printf("  %.3f ms - total time\n", time_total);
 
   // Print clock timings
   printf("clock_t timings:\n");
@@ -76,7 +86,9 @@ int main(){
   hipStreamDestroy(stream);
 
   // Destroy events
-  #error destroy events here
+  hipEventDestroy(start_kernel_event);
+  hipEventDestroy(start_d2h_event);
+  hipEventDestroy(stop_event);
 
   // Deallocations
   hipFree(d_a); // Device
